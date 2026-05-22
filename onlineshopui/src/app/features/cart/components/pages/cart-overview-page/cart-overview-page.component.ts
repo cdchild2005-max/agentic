@@ -7,7 +7,12 @@ import {
     signal
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import {
+    AbstractControl,
+    FormBuilder,
+    ReactiveFormsModule,
+    ValidationErrors
+} from '@angular/forms';
 import { take } from 'rxjs';
 import { CartService } from '../../../services/cart.service';
 import { ProductService } from '../../../../products/services/product.service';
@@ -25,9 +30,14 @@ import {
     toCreateOrderDto
 } from '../../../utils/cart.utils';
 
+function notBlank(control: AbstractControl): ValidationErrors | null {
+    const value = control.value as string;
+    return value && value.trim().length > 0 ? null : { required: true };
+}
+
 @Component({
     selector: 'app-cart-overview-page',
-    imports: [SpinnerComponent, CartItemRowComponent, CartSummaryComponent, ModalComponent, RouterLink, FormsModule],
+    imports: [SpinnerComponent, CartItemRowComponent, CartSummaryComponent, ModalComponent, RouterLink, ReactiveFormsModule],
     templateUrl: './cart-overview-page.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -37,6 +47,7 @@ export class CartOverviewPageComponent implements OnInit {
     private readonly ordersService = inject(OrdersService);
     private readonly router = inject(Router);
     private readonly notificationsService = inject(NotificationsService);
+    private readonly fb = inject(FormBuilder);
 
     readonly cartItems = this.cartService.items;
     readonly products = this.productService.products;
@@ -58,13 +69,11 @@ export class CartOverviewPageComponent implements OnInit {
 
     readonly itemCount = this.cartService.totalItems;
 
-    readonly address = signal<AddressDto>({ country: '', city: '', county: '', streetAddress: '' });
-
-    readonly isAddressValid = computed(() => {
-        const a = this.address();
-        return a.country.trim().length > 0 &&
-               a.city.trim().length > 0 &&
-               a.streetAddress.trim().length > 0;
+    readonly addressForm = this.fb.group({
+        country: ['', [notBlank]],
+        city: ['', [notBlank]],
+        county: [''],
+        streetAddress: ['', [notBlank]]
     });
 
     ngOnInit(): void {
@@ -88,14 +97,19 @@ export class CartOverviewPageComponent implements OnInit {
         this.isAddressModalOpen.set(true);
     }
 
-    updateAddress(field: keyof AddressDto, value: string): void {
-        this.address.update(a => ({ ...a, [field]: value }));
-    }
-
     onAddressConfirmed(): void {
-        if (!this.isAddressValid()) return;
+        this.addressForm.markAllAsTouched();
+        if (this.addressForm.invalid) return;
 
-        const payload = toCreateOrderDto(this.cartItems(), this.address());
+        const { country, city, county, streetAddress } = this.addressForm.value;
+        const address: AddressDto = {
+            country: country!.trim(),
+            city: city!.trim(),
+            county: county?.trim() ?? '',
+            streetAddress: streetAddress!.trim()
+        };
+
+        const payload = toCreateOrderDto(this.cartItems(), address);
         if (!payload) return;
 
         this.isAddressModalOpen.set(false);
@@ -107,7 +121,7 @@ export class CartOverviewPageComponent implements OnInit {
                 next: () => {
                     this.isSubmitting.set(false);
                     this.cartService.clear();
-                    this.address.set({ country: '', city: '', county: '', streetAddress: '' });
+                    this.addressForm.reset();
                     this.notificationsService.notifySuccess({
                         title: 'Order placed',
                         message: 'Your order is being processed.'
@@ -130,6 +144,7 @@ export class CartOverviewPageComponent implements OnInit {
     }
 
     onAddressModalClose(): void {
+        this.addressForm.reset();
         this.isAddressModalOpen.set(false);
     }
 

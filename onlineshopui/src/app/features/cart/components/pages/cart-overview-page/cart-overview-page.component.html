@@ -71,59 +71,72 @@
     confirmText="Place Order"
     cancelText="Cancel"
     [isProcessing]="isSubmitting()"
-    [confirmDisabled]="!isAddressValid()"
+    [confirmDisabled]="addressForm.invalid && addressForm.touched"
     (confirmed)="onAddressConfirmed()"
     (cancelled)="onAddressModalClose()"
     (closed)="onAddressModalClose()"
 >
-    <form class="space-y-4">
+    <form [formGroup]="addressForm" class="space-y-4">
         <div>
-            <label class="block text-sm font-medium text-text mb-1" for="addr-country">Country <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-medium text-text mb-1" for="addr-country">
+                Country <span class="text-red-500">*</span>
+            </label>
             <input
                 id="addr-country"
                 type="text"
-                [ngModel]="address().country"
-                (ngModelChange)="updateAddress('country', $event)"
-                name="country"
+                formControlName="country"
                 placeholder="e.g. Romania"
+                [class.border-red-500]="addressForm.controls.country.invalid && addressForm.controls.country.touched"
                 class="w-full px-3 py-2 rounded-md border border-border bg-surface text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            @if (addressForm.controls.country.invalid && addressForm.controls.country.touched) {
+                <p class="mt-1 text-xs text-red-500">Country is required.</p>
+            }
         </div>
+
         <div>
-            <label class="block text-sm font-medium text-text mb-1" for="addr-city">City <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-medium text-text mb-1" for="addr-city">
+                City <span class="text-red-500">*</span>
+            </label>
             <input
                 id="addr-city"
                 type="text"
-                [ngModel]="address().city"
-                (ngModelChange)="updateAddress('city', $event)"
-                name="city"
+                formControlName="city"
                 placeholder="e.g. Cluj-Napoca"
+                [class.border-red-500]="addressForm.controls.city.invalid && addressForm.controls.city.touched"
                 class="w-full px-3 py-2 rounded-md border border-border bg-surface text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            @if (addressForm.controls.city.invalid && addressForm.controls.city.touched) {
+                <p class="mt-1 text-xs text-red-500">City is required.</p>
+            }
         </div>
+
         <div>
             <label class="block text-sm font-medium text-text mb-1" for="addr-county">County</label>
             <input
                 id="addr-county"
                 type="text"
-                [ngModel]="address().county"
-                (ngModelChange)="updateAddress('county', $event)"
-                name="county"
+                formControlName="county"
                 placeholder="e.g. Cluj"
                 class="w-full px-3 py-2 rounded-md border border-border bg-surface text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
             />
         </div>
+
         <div>
-            <label class="block text-sm font-medium text-text mb-1" for="addr-street">Street Address <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-medium text-text mb-1" for="addr-street">
+                Street Address <span class="text-red-500">*</span>
+            </label>
             <input
                 id="addr-street"
                 type="text"
-                [ngModel]="address().streetAddress"
-                (ngModelChange)="updateAddress('streetAddress', $event)"
-                name="streetAddress"
+                formControlName="streetAddress"
                 placeholder="e.g. Strada Florilor 12"
+                [class.border-red-500]="addressForm.controls.streetAddress.invalid && addressForm.controls.streetAddress.touched"
                 class="w-full px-3 py-2 rounded-md border border-border bg-surface text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            @if (addressForm.controls.streetAddress.invalid && addressForm.controls.streetAddress.touched) {
+                <p class="mt-1 text-xs text-red-500">Street address is required.</p>
+            }
         </div>
     </form>
 </app-modal>
