@@ -7,6 +7,7 @@ import {
     signal
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { take } from 'rxjs';
 import { CartService } from '../../../services/cart.service';
 import { ProductService } from '../../../../products/services/product.service';
@@ -14,8 +15,10 @@ import { OrdersService } from '../../../../orders/services/orders.service';
 import { SpinnerComponent } from '../../../../../clib/components/spinner/spinner.component';
 import { CartItemRowComponent } from '../../views/cart-item-row/cart-item-row.component';
 import { CartSummaryComponent } from '../../views/cart-summary/cart-summary.component';
+import { ModalComponent } from '../../../../../clib/components/modal/modal.component';
 import { AppNavRoutes } from '../../../../../core/config/constants/navigation.constants';
 import { NotificationsService } from '../../../../../core/services/notifications.service';
+import { AddressDto } from '../../../../../core/types/dtos/location.dto';
 import {
     buildProductsById,
     calculateCartSubtotal,
@@ -24,7 +27,7 @@ import {
 
 @Component({
     selector: 'app-cart-overview-page',
-    imports: [SpinnerComponent, CartItemRowComponent, CartSummaryComponent, RouterLink],
+    imports: [SpinnerComponent, CartItemRowComponent, CartSummaryComponent, ModalComponent, RouterLink, FormsModule],
     templateUrl: './cart-overview-page.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -40,6 +43,7 @@ export class CartOverviewPageComponent implements OnInit {
     readonly loading = this.productService.loading;
     readonly error = this.productService.error;
     readonly isSubmitting = signal(false);
+    readonly isAddressModalOpen = signal(false);
     readonly productsLink = [
         '/',
         AppNavRoutes.Products.root,
@@ -53,6 +57,15 @@ export class CartOverviewPageComponent implements OnInit {
     );
 
     readonly itemCount = this.cartService.totalItems;
+
+    readonly address = signal<AddressDto>({ country: '', city: '', county: '', streetAddress: '' });
+
+    readonly isAddressValid = computed(() => {
+        const a = this.address();
+        return a.country.trim().length > 0 &&
+               a.city.trim().length > 0 &&
+               a.streetAddress.trim().length > 0;
+    });
 
     ngOnInit(): void {
         this.productService.loadAll().pipe(take(1)).subscribe();
@@ -72,10 +85,20 @@ export class CartOverviewPageComponent implements OnInit {
 
     onCheckout(): void {
         if (this.cartItems().length === 0) return;
+        this.isAddressModalOpen.set(true);
+    }
 
-        const payload = toCreateOrderDto(this.cartItems());
+    updateAddress(field: keyof AddressDto, value: string): void {
+        this.address.update(a => ({ ...a, [field]: value }));
+    }
+
+    onAddressConfirmed(): void {
+        if (!this.isAddressValid()) return;
+
+        const payload = toCreateOrderDto(this.cartItems(), this.address());
         if (!payload) return;
 
+        this.isAddressModalOpen.set(false);
         this.isSubmitting.set(true);
         this.ordersService
             .create(payload)
@@ -84,6 +107,7 @@ export class CartOverviewPageComponent implements OnInit {
                 next: () => {
                     this.isSubmitting.set(false);
                     this.cartService.clear();
+                    this.address.set({ country: '', city: '', county: '', streetAddress: '' });
                     this.notificationsService.notifySuccess({
                         title: 'Order placed',
                         message: 'Your order is being processed.'
@@ -103,6 +127,10 @@ export class CartOverviewPageComponent implements OnInit {
                     this.isSubmitting.set(false);
                 }
             });
+    }
+
+    onAddressModalClose(): void {
+        this.isAddressModalOpen.set(false);
     }
 
     retry(): void {
