@@ -13,6 +13,7 @@ export class ModalComponent {
     confirmText = input<string>('Confirm');
     cancelText = input<string>('Cancel');
     isProcessing = input<boolean>(false);
+    confirmDisabled = input<boolean>(false);
 
     confirmed = output<void>();
     cancelled = output<void>();
