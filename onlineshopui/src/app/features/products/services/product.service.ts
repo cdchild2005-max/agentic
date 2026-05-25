@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { Observable, tap, finalize, catchError, of, map } from 'rxjs';
-import { ProductDto, ProductCategoryDto } from '../../../core/types/dtos/product.dto';
+import { ProductDto, ProductCategoryDto, SupplierDto } from '../../../core/types/dtos/product.dto';
 import { EnvironmentConfig } from '../../../core/types/providers/environment-config';
 
 @Injectable({
@@ -12,16 +12,19 @@ export class ProductService {
     private readonly environmentConfig = inject(EnvironmentConfig);
     private readonly productsUrl = `${this.environmentConfig.apiUrl}/products`;
     private readonly categoriesUrl = `${this.environmentConfig.apiUrl}/products/categories`;
+    private readonly suppliersUrl = `${this.environmentConfig.apiUrl}/suppliers`;
 
     private readonly _products = signal<ProductDto[]>([]);
     private readonly _selectedProduct = signal<ProductDto | null>(null);
     private readonly _categories = signal<ProductCategoryDto[]>([]);
+    private readonly _suppliers = signal<SupplierDto[]>([]);
     private readonly _loading = signal(false);
     private readonly _error = signal<string | null>(null);
 
     readonly products = this._products.asReadonly();
     readonly selectedProduct = this._selectedProduct.asReadonly();
     readonly categories = this._categories.asReadonly();
+    readonly suppliers = this._suppliers.asReadonly();
     readonly loading = this._loading.asReadonly();
     readonly error = this._error.asReadonly();
 
@@ -67,6 +70,22 @@ export class ProductService {
             tap(() => this._error.set(null)),
             catchError(() => {
                 this._error.set('Failed to load categories');
+                return of([]);
+            }),
+            finalize(() => this._loading.set(false)),
+            map(() => undefined)
+        );
+    }
+
+    loadSuppliers(): Observable<void> {
+        this._loading.set(true);
+        this._error.set(null);
+
+        return this.http.get<SupplierDto[]>(this.suppliersUrl).pipe(
+            tap(suppliers => this._suppliers.set(suppliers)),
+            tap(() => this._error.set(null)),
+            catchError(() => {
+                this._error.set('Failed to load suppliers');
                 return of([]);
             }),
             finalize(() => this._loading.set(false)),
